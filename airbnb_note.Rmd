@@ -1,0 +1,127 @@
+---
+title: "AIRBNB"
+output: html_AIRBNB
+---
+
+Le dados
+
+```{r Le dados}
+setwd("C:/Users/jaime.bellido/Documents/Cognitivo")
+
+library(readr)
+
+listings <- read_csv("listings.csv", col_types = cols(id = col_character(), host_id = col_character(), latitude = col_character(), longitude = col_character(), last_review = col_datetime(format = "%Y-%m-%d"), reviews_per_month = col_number()))
+```
+
+```{r Vista do banco Listings}
+View(listings)
+```
+
+```{r filtra os dados mais atuais de Listings, o ultimo ano de dados}
+listings2<-listings[as.Date(listings$last_review) >= as.Date("2020-03-01"), ]
+listings2<- listings2[!is.na(listings2$id),]
+View(listings2)
+str(listings2)
+```
+
+```{r Analse descritiva, tabela e histograma de frequencias da varíavel representativa}
+install.packages("descr") # Instala o pacote para a visualização de tabelas de frequencias
+library(descr)
+
+
+freq(round(listings2$reviews_per_month), digits=2)
+
+
+```
+
+```{r Retiramos os dados com frequencia 0 para review_per_month p continuar com a analise descritiva}
+
+listings3<-listings2[round(listings2$reviews_per_month, digits=0) > 0, ]
+listings3<-listings3[!is.na(listings3$id), ]
+View(listings3)
+freq(round(listings3$reviews_per_month), digits=2)
+
+
+```
+
+```{r Medidas de resumo}
+
+#Média e mediana
+
+mean(listings3$reviews_per_month, na.rm = TRUE)
+
+summary(listings3$reviews_per_month)
+
+# Quantis
+
+quantile(listings3$reviews_per_month, na.rm = TRUE)
+
+# Medidas de dispersão
+
+# Mínimo e máximo
+
+min(listings3$reviews_per_month, na.rm = TRUE)     
+
+max(listings3$reviews_per_month, na.rm = TRUE)     
+
+# Amplitude
+
+range(listings3$reviews_per_month, na.rm = TRUE)     
+
+max(listings3$reviews_per_month, na.rm = TRUE)- min(listings3$reviews_per_month, na.rm = TRUE) 
+
+# Variância
+
+var(listings3$reviews_per_month, na.rm = TRUE)     
+
+# Desvio-padrão
+
+sd(listings3$reviews_per_month, na.rm = TRUE)     
+
+# Coeficiente de variação
+
+cv<-sd(listings3$reviews_per_month, na.rm = TRUE)/mean(listings3$reviews_per_month, na.rm = TRUE)*100
+
+cv
+
+#Boxplot
+
+boxplot(listings3$reviews_per_month)
+
+
+```
+
+```{r Frequencia por bairros}
+Bairros<-freq(listings3$neighbourhood)
+View(Bairros)
+```
+
+Apos organizar a tabela Bairros por frequência decrecente, se observa que a maioria dos IDs ou unidades se encomtram localizados em bairros da Zona Sul, Centro e Barra, pelo que seria interessante agrupar estas unidades em 3 grupos formados a partir da variável review_per_month.
+
+![](C:/Users/jaime.bellido/AppData/Local/RStudio/tmp/paste-1DE25054.png)
+
+```{r k means}
+set.seed(123)
+
+dataScaled <- scale(listings3$reviews_per_month)
+dataKmeans <- kmeans(dataScaled,3)
+BairrosClusters<-rbind(rbind(rbind(listings3$neighbourhood,dataKmeans[["cluster"]]),listings3$reviews_per_month),listings3$id)
+BClustersT<-as.data.frame(t(BairrosClusters))
+names(BClustersT)[1] ="Bairro"
+names(BClustersT)[2] ="Cluster"
+names(BClustersT)[3] ="Reviews_per_month"
+names(BClustersT)[4] ="Id"
+BClustersT$Cluster=as.numeric(BClustersT$Cluster)
+BClustersT$Reviews_per_month=as.numeric(BClustersT$Reviews_per_month)
+View(BClustersT)
+## Classificação dos Clusters
+Cluster1<-BClustersT[BClustersT$Cluster==1, ]
+Cluster2<-BClustersT[BClustersT$Cluster==2, ]
+Cluster3<-BClustersT[BClustersT$Cluster==3, ]
+
+summary(Cluster1$Reviews_per_month)
+summary(Cluster2$Reviews_per_month)
+summary(Cluster3$Reviews_per_month)
+```
+
+Pelo função summary das estatisticas el cluster 2 identifica as observações com maiores review_per_month, o cluster 3 seria o segundo neste ranking e o cluster 1 o último, isto de acordo aos dados mais recentes do último ano.
